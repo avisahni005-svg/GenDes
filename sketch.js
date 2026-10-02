@@ -40,9 +40,17 @@ function gridBase(space, d, q, b) {
   stroke(0);
   fill(q, 163, b);
 
-  for (let x = space; x < 759; x += space) {
-    for (let y = space; y < 759; y += space) {
-      circle(x, y, d);
+  // How many circles fit in each direction, leaving about one spacing of margin.
+  let cols = max(1, floor((width - space) / space));
+  let rows = max(1, floor((height - space) / space));
+
+  // Offset so the whole grid is centred on the canvas.
+  let startX = (width - (cols - 1) * space) / 2;
+  let startY = (height - (rows - 1) * space) / 2;
+
+  for (let col = 0; col < cols; col++) {
+    for (let row = 0; row < rows; row++) {
+      circle(startX + col * space, startY + row * space, d);
     }
   }
 }
