@@ -1,4 +1,4 @@
-// Simple "C" with a centre dot. Press SPACE to add random segments to the outer C.
+// Simple "C" with a centre dot. Press SPACE to replace the segments on the outer C with a new random set.
 const BG = "#FFF456";
 const INK = "#211F20";
 const R = 190;          // radius of the base C
