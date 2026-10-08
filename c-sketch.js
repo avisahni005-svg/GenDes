@@ -6,6 +6,10 @@ const W = 9;            // stroke weight of the base C
 const DOT = 38;         // radius of the centre dot
 const GAP = 35;         // half-angle of the opening on the right (degrees)
 
+const C_EDGE = R + W / 2; // outer edge of the base C
+const MIN_GAP = 6;        // minimum clear space between non-touching shapes
+const TOUCH_CHANCE = 0.4; // share of segments that sit flush against the C
+
 let segments = [];
 
 function setup() {
@@ -34,59 +38,52 @@ function draw() {
 }
 
 function drawSegment(s) {
-  if (s.kind === "wedge") {
-    // thick filled ring sector
+  stroke(INK);
+  strokeCap(BUTT); // exact extents, so the spacing check is accurate
+  if (s.kind === "tick") {
+    strokeWeight(s.thick);
+    line(cos(s.a0) * s.rIn, sin(s.a0) * s.rIn, cos(s.a0) * s.rOut, sin(s.a0) * s.rOut);
+  } else {
     noFill();
-    stroke(INK);
-    strokeWeight(s.thick);
-    strokeCap(SQUARE);
-    arc(0, 0, s.r * 2, s.r * 2, s.a, s.a + s.span);
-  } else if (s.kind === "line") {
-    // thin concentric arc
-    noFill();
-    stroke(INK);
-    strokeWeight(s.thick);
-    strokeCap(SQUARE);
-    arc(0, 0, s.r * 2, s.r * 2, s.a, s.a + s.span);
-  } else if (s.kind === "tick") {
-    // short radial block
-    stroke(INK);
-    strokeWeight(s.thick);
-    strokeCap(SQUARE);
-    const x1 = cos(s.a) * s.r, y1 = sin(s.a) * s.r;
-    const x2 = cos(s.a) * (s.r + s.len), y2 = sin(s.a) * (s.r + s.len);
-    line(x1, y1, x2, y2);
+    strokeWeight(s.rOut - s.rIn);
+    const r = (s.rIn + s.rOut) / 2;
+    arc(0, 0, r * 2, r * 2, s.a0, s.a1);
   }
+}
+
+// Two segments are too close if they overlap once padded by MIN_GAP,
+// both radially and along the arc.
+function tooClose(a, b) {
+  const radial = a.rIn < b.rOut + MIN_GAP && b.rIn < a.rOut + MIN_GAP;
+  const rMid = (min(a.rIn, b.rIn) + max(a.rOut, b.rOut)) / 2;
+  const pad = degrees(MIN_GAP / rMid);
+  const angular = a.a0 < b.a1 + pad && b.a0 < a.a1 + pad;
+  return radial && angular;
+}
+
+function makeCandidate() {
+  const lo = GAP + 2, hi = 360 - GAP - 2;
+  const kind = random(["wedge", "line", "tick"]);
+  const touching = random() < TOUCH_CHANCE;
+
+  let thick, span;
+  if (kind === "wedge") { thick = random(14, 36); span = random(15, 80); }
+  else if (kind === "line") { thick = random(3, 9); span = random(10, 90); }
+  else { thick = random(4, 10); span = 0; }
+
+  // touching: flush against the C's outer edge; otherwise leave at least MIN_GAP
+  const rIn = C_EDGE + (touching ? 0 : random(MIN_GAP, 50));
+  const len = kind === "tick" ? random(14, 34) : thick;
+  const a0 = random(lo, hi - span);
+  return { kind, thick, rIn, rOut: rIn + len, a0, a1: a0 + span };
 }
 
 function generateSegments() {
   segments = [];
-  const lo = GAP + 2, hi = 360 - GAP - 2;
-
-  // a few thick wedges hugging the outside of the C
-  for (let i = 0; i < int(random(2, 5)); i++) {
-    const thick = random(14, 36);
-    const span = random(15, 80);
-    const a = random(lo, hi - span);
-    segments.push({ kind: "wedge", r: R + W / 2 + thick / 2 + random(0, 6), thick, a, span });
-  }
-
-  // thin concentric arcs at various distances
-  for (let i = 0; i < int(random(3, 7)); i++) {
-    const span = random(10, 90);
-    const a = random(lo, hi - span);
-    segments.push({ kind: "line", r: R + random(14, 48), thick: random(3, 9), a, span });
-  }
-
-  // small radial ticks
-  for (let i = 0; i < int(random(3, 8)); i++) {
-    segments.push({
-      kind: "tick",
-      r: R + random(8, 30),
-      len: random(14, 34),
-      thick: random(4, 10),
-      a: random(lo, hi),
-    });
+  const target = int(random(8, 16));
+  for (let tries = 0; tries < 300 && segments.length < target; tries++) {
+    const c = makeCandidate();
+    if (!segments.some((s) => tooClose(c, s))) segments.push(c);
   }
 }
 
