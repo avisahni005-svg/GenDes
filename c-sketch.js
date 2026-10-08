@@ -39,7 +39,7 @@ function draw() {
 
 function drawSegment(s) {
   stroke(INK);
-  strokeCap(BUTT); // exact extents, so the spacing check is accurate
+  strokeCap(SQUARE); // in p5, SQUARE is the flat cap (no overhang), so extents stay exact
   if (s.kind === "tick") {
     strokeWeight(s.thick);
     line(cos(s.a0) * s.rIn, sin(s.a0) * s.rIn, cos(s.a0) * s.rOut, sin(s.a0) * s.rOut);
